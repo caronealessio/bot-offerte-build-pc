@@ -34,7 +34,7 @@ Comandi (da `bot-annunci-pc/`): `pip install -r requirements.txt` · `python tes
 Il `--dry-run` modifica comunque `data/stato.json`: fai una copia prima e ripristinala dopo.
 
 ## Regole di prezzo decise con Alessio (non cambiarle senza chiedere)
-- Nessun tetto fisso: decide solo la mediana.
+- **Budget massimo** (deciso il 20/11/2026, `budget:` in config.yaml, spedizione inclusa): GPU 500 €, CPU 250 €, RAM 180 €. Sopra il budget non si avvisa mai (né usato né nuovo). Sotto il budget le etichette restano decise dalle mediane.
 - **Riferimento nuovo** = mediana a 30 giorni del prezzo minimo giornaliero su Trovaprezzi, spedizione inclusa. Negozi con ≥3,5★ e ≥30 recensioni, eBay escluso.
 - **Tetto usato** = min(70% del riferimento nuovo, mediana a 30 giorni dell'usato). La mediana dell'usato vale solo con ≥5 campioni, outlier rimossi con IQR, ed esclude i prezzi sotto il 50% del nuovo (truffe).
 - Etichette usato: ✅ ≤ tetto · 🟡 50-60% del nuovo · 🔴 <50% = possibile truffa (si avvisa sempre).

@@ -14,6 +14,14 @@ regole:
   min_campioni_usato: 5       # annunci minimi per fidarsi della mediana usato
   min_giorni_storico_nuovo: 7 # giorni minimi prima di segnalare "minimo storico"
 
+# --- Budget massimo per tipo (spedizione inclusa) -----------------------
+# Sopra questa cifra non arriva nessun avviso, né per l'usato né per il nuovo.
+# Un prodotto può avere un suo "budget:" che sostituisce questo.
+budget:
+  gpu: 500
+  cpu: 250
+  ram: 180
+
 # --- Filtri sui negozi (per calcolare il prezzo del nuovo) ------------
 negozi:
   stelle_minime: 3.5          # media recensioni del negozio su Trovaprezzi

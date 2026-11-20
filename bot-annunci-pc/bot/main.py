@@ -44,6 +44,10 @@ class Esecuzione:
         if not ok:
             self.errori_txt[fonte] = err
 
+    def budget(self, p: dict) -> float | None:
+        """Spesa massima (spedizione inclusa): sopra non si avvisa."""
+        return p.get("budget") or (self.cfg.get("budget") or {}).get(p.get("tipo"))
+
     def _deve_aggiornare_nuovo(self, pid: str) -> bool:
         ultimo = self.stato.get_meta(f"nuovo_ts_{pid}")
         if not ultimo:
@@ -84,6 +88,9 @@ class Esecuzione:
               and best.totale < min_storico):
             motivo = f"nuovo minimo storico (prima: {fmt_euro(min_storico)})"
         if not motivo:
+            return
+        budget = self.budget(p)
+        if budget and best.totale > budget:
             return
         ultimo = self.stato.ultimo_avviso_nuovo(pid)
         if ultimo is not None and best.totale >= ultimo:
@@ -154,6 +161,7 @@ class Esecuzione:
                 self.stato.registra_usato(pid, a.chiave, a.totale)
 
         rif = self.riferimenti(pid)
+        budget = self.budget(p)
 
         da_inviare = []
         for a in annunci:
@@ -165,7 +173,7 @@ class Esecuzione:
                 ribasso = prec
             self.stato.segna_visto(a.chiave, a.totale)
             avvisa, etichetta, rapporto = valuta_usato(a, rif, self.regole)
-            if avvisa:
+            if avvisa and (not budget or a.totale <= budget):
                 da_inviare.append((a, etichetta, rapporto, ribasso))
 
         da_inviare.sort(key=lambda x: x[0].totale)
@@ -175,7 +183,8 @@ class Esecuzione:
         if len(da_inviare) > limite:
             self.tg.invia(f"ℹ️ {esc(p['nome'])}: altri {len(da_inviare) - limite} annunci sotto soglia non mostrati.")
         self.stato.set_meta(f"init_{pid}", oggi())
-        print(f"[{pid}] usato: {len(annunci)} annunci validi, {len(da_inviare)} avvisi, tetto {rif.tetto_usato}")
+        print(f"[{pid}] usato: {len(annunci)} annunci validi, {len(da_inviare)} avvisi, "
+              f"tetto {rif.tetto_usato}, budget {budget}")
 
     def _msg_usato(self, p, a: Annuncio, etichetta, rapporto, ribasso, rif) -> str:
         if a.spedizione is None:

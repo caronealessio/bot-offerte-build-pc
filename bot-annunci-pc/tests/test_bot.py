@@ -178,6 +178,19 @@ def test_giro_completo(monkeypatch=None):
         run2.usato(cfg["prodotti"][0])
         assert tg2.inviati == 0                             # già visti
 
+    # budget: con tetto GPU a 300 € passa solo l'annuncio da 250 €
+    cfg_b = dict(cfg, budget={"gpu": 300})
+    with tempfile.TemporaryDirectory() as d:
+        stato = Stato(Path(d) / "stato.json")
+        tg = Telegram(dry_run=True)
+        run = M.Esecuzione(cfg_b, stato, tg)
+        assert run.budget(cfg["prodotti"][0]) == 300
+        run.nuovo(cfg["prodotti"][0])
+        run.usato(cfg["prodotti"][0])
+        assert tg.inviati == 1
+    assert M.Esecuzione(CFG, None, None).budget(PROD["r7_5800x3d"]) == 250
+    assert M.Esecuzione(CFG, None, None).budget(PROD["ddr4_32_3200"]) == 180
+
 
 if __name__ == "__main__":
     for name, fn in list(globals().items()):
