@@ -8,6 +8,7 @@ Uso:
 from __future__ import annotations
 
 import argparse
+import re
 import sys
 import traceback
 from datetime import datetime
@@ -18,7 +19,7 @@ import yaml
 from .common import Annuncio, Http, fmt_euro
 from .matching import corrisponde, da_scartare, segnali_sospetti
 from .prezzi import calcola_riferimenti, migliore_offerta, segnali_venditore, valuta_usato
-from .sources import ebay, subito, trovaprezzi
+from .sources import ebay, idealo, subito, trovaprezzi, vinted
 from .storico import ROMA, Stato, oggi, ora_iso
 from .telegram import Telegram, esc
 
@@ -37,6 +38,7 @@ class Esecuzione:
         self.regole = cfg["regole"]
         self.esiti: dict[str, list[bool]] = {}  # fonte -> esiti delle richieste
         self.errori_txt: dict[str, str] = {}
+        self.aliexpress: dict[str, list[Annuncio]] = {}  # pid -> offerte AliExpress viste su Idealo
 
     # ------------------------------------------------------------------
     def _esito(self, fonte: str, ok: bool, err: str = ""):
@@ -58,14 +60,33 @@ class Esecuzione:
     # ------------------------------------------------------------------
     def nuovo(self, p: dict):
         pid = p["id"]
-        if not p.get("trovaprezzi") or not self._deve_aggiornare_nuovo(pid):
+        if not self._deve_aggiornare_nuovo(pid):
             return
-        try:
-            offerte = trovaprezzi.cerca(self.http, p["trovaprezzi"])
-            self._esito("Trovaprezzi", True)
-        except Exception as e:  # noqa: BLE001
-            self._esito("Trovaprezzi", False, str(e))
-            print(f"[{pid}] Trovaprezzi errore: {e}")
+        offerte = []
+        riuscite = 0
+        if p.get("trovaprezzi"):
+            try:
+                offerte += trovaprezzi.cerca(self.http, p["trovaprezzi"])
+                self._esito("Trovaprezzi", True)
+                riuscite += 1
+            except Exception as e:  # noqa: BLE001
+                self._esito("Trovaprezzi", False, str(e))
+                print(f"[{pid}] Trovaprezzi errore: {e}")
+        q_idealo = p.get("idealo") or (p.get("subito") or [None])[0]
+        if q_idealo:
+            try:
+                items = idealo.cerca(self.http, q_idealo)
+                self._esito("Idealo", True)
+                riuscite += 1
+                filtri = p.get("idealo_tutti", [])
+                offerte += [o for o in idealo.offerte(items)
+                            if all(re.search(rx, o.titolo.lower()) for rx in filtri)]
+                self.aliexpress[pid] = [a for a in idealo.aliexpress(items)
+                                        if all(re.search(rx, a.titolo.lower()) for rx in filtri)]
+            except Exception as e:  # noqa: BLE001
+                self._esito("Idealo", False, str(e))
+                print(f"[{pid}] Idealo errore: {e}")
+        if not riuscite:
             return
         self.stato.set_meta(f"nuovo_ts_{pid}", ora_iso())
         best = migliore_offerta(p, offerte, self.cfg["negozi"])
@@ -79,7 +100,8 @@ class Esecuzione:
         min_storico = self.stato.minimo_storico_nuovo(pid)
         giorni = self.stato.giorni_storico_nuovo(pid)
         self.stato.registra_nuovo(pid, best.totale)
-        print(f"[{pid}] nuovo: {best.totale} € da {best.negozio}")
+        fonte = best.extra.get("fonte", "Trovaprezzi")
+        print(f"[{pid}] nuovo: {best.totale} € da {best.negozio} ({fonte})")
 
         motivo = None
         if med_prec and best.totale <= med_prec * self.regole["nuovo_calo"]:
@@ -101,7 +123,7 @@ class Esecuzione:
             f"📉 <b>Calo di prezzo sul NUOVO — {esc(p['nome'])}</b>\n"
             f"{esc(best.titolo[:150])}\n"
             f"💶 <b>{fmt_euro(best.totale)}</b> spedizione inclusa\n"
-            f"🏪 {esc(best.negozio)}{stelle}{rec}\n"
+            f"🏪 {esc(best.negozio)}{stelle}{rec} · {fonte}\n"
             f"📊 {esc(motivo)}\n"
             f"🔗 <a href=\"{esc(best.url)}\">Vai all'offerta</a>"
         )
@@ -118,6 +140,17 @@ class Esecuzione:
             except Exception as e:  # noqa: BLE001
                 self._esito("Subito", False, str(e))
                 print(f"[{p['id']}] Subito errore ({q}): {e}")
+        q_vinted = p.get("vinted") or (p.get("subito") or [None])[0]
+        if q_vinted:
+            try:
+                for a in vinted.cerca(self.http, q_vinted):
+                    trovati[a.chiave] = a
+                self._esito("Vinted", True)
+            except Exception as e:  # noqa: BLE001
+                self._esito("Vinted", False, str(e))
+                print(f"[{p['id']}] Vinted errore: {e}")
+        for a in self.aliexpress.pop(p["id"], []):
+            trovati[a.chiave] = a
         if p.get("ebay") and ebay.configurato():
             try:
                 for a in ebay.cerca(self.http, p["ebay"]):
@@ -148,16 +181,20 @@ class Esecuzione:
         pid = p["id"]
         primo_giro = not self.stato.get_meta(f"init_{pid}")
         pavimento = self._pavimento_usato(pid)
+        rif_nuovo = self.stato.mediana_nuovo(pid, self.regole["giorni_mediana"]) or self.stato.nuovo_oggi(pid)
+        # sotto il 15% del nuovo non è mai il prodotto: scatole, cavi, accessori
+        minimo = max(20, rif_nuovo * self.regole.get("minimo_su_nuovo", 0.15)) if rif_nuovo else 20
         annunci = []
         for a in self._raccogli_usato(p):
             if not corrisponde(p, a.titolo):
                 continue
             if da_scartare(a.titolo + " " + a.descrizione, self.cfg["scarta_se_contiene"]):
                 continue
-            if a.prezzo < 20:  # prezzi simbolici ("1 €", "trattabile")
+            if a.prezzo < minimo:  # prezzi simbolici ("1 €", "trattabile") o accessori
                 continue
             annunci.append(a)
-            if pavimento is None or a.totale >= pavimento:  # le truffe non entrano nella mediana
+            # le truffe e AliExpress (nuovo da venditori esteri) non entrano nella mediana dell'usato
+            if a.fonte != "AliExpress" and (pavimento is None or a.totale >= pavimento):
                 self.stato.registra_usato(pid, a.chiave, a.totale)
 
         rif = self.riferimenti(pid)

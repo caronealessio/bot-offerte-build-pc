@@ -10,6 +10,7 @@ regole:
   usato_max_su_nuovo: 0.70    # usato "buon prezzo" se <= 70% del nuovo
   soglia_affare: 0.60         # sotto il 60% -> etichetta gialla "affare, verifica"
   soglia_truffa: 0.50         # sotto il 50% -> etichetta rossa "possibile truffa"
+  minimo_su_nuovo: 0.15       # sotto il 15% non è il prodotto (scatole, cavi): annuncio ignorato
   nuovo_calo: 0.90            # nuovo: avvisa se <= 90% della mediana 30 gg
   min_campioni_usato: 5       # annunci minimi per fidarsi della mediana usato
   min_giorni_storico_nuovo: 7 # giorni minimi prima di segnalare "minimo storico"
@@ -26,8 +27,10 @@ budget:
 negozi:
   stelle_minime: 3.5          # media recensioni del negozio su Trovaprezzi
   recensioni_minime: 30
-  escludi:                    # marketplace/negozi da non usare come riferimento
+  escludi:                    # marketplace/negozi da non usare come riferimento (basta che il nome lo contenga)
     - eBay
+    - aliexpress
+  # Nota: su Idealo stelle e recensioni dei negozi non sono disponibili.
 
 # --- Frequenze ---------------------------------------------------------
 frequenze:
@@ -83,6 +86,7 @@ prodotti:
     tipo: gpu
     tutti: ["9060\\s?xt"]
     escludi: ["\\b8\\s?gb?\\b", "\\b8g\\b"]
+    idealo_tutti: ["16\\s?g"]     # su Idealo il nome senza "16G" può essere la versione 8GB
     subito: ["rx 9060 xt"]
     ebay: "rx 9060 xt 16gb"
     trovaprezzi: "https://www.trovaprezzi.it/prezzo_schede-grafiche_rx_9060_xt_16gb.aspx?sort=prezzo_totale"
@@ -137,6 +141,7 @@ prodotti:
     tipo: gpu
     tutti: ["5060\\s?ti"]
     escludi: ["\\b8\\s?gb?\\b", "\\b8g\\b"]
+    idealo_tutti: ["16\\s?g"]
     subito: ["rtx 5060 ti"]
     ebay: "rtx 5060 ti 16gb"
     trovaprezzi: "https://www.trovaprezzi.it/prezzo_schede-grafiche_rtx_5060_ti_16gb.aspx?sort=prezzo_totale"

@@ -22,6 +22,11 @@ ESCLUSIONI_TIPO = {
         # accessori che citano il modello della scheda
         r"\bwaterblock\b", r"\bdissipatore\b", r"riser", r"\bcavo\b", r"\bcable\b",
         r"adattatore", r"\bstaffa\b", r"anti-?sag", r"backplate",
+        r"\bbridge\b", r"\bsli\b", r"holder", r"supporto gpu", r"suporte", r"soporte",
+        r"alimenta(tore|tion|ción)", r"\bpsu\b",
+        # scatole vuote e lotti (Vinted è internazionale: IT/FR/DE/ES/PT/EN)
+        r"^\W*(bo[iî]te|caja|caixa|karton|box|scatola|ovp)\b", r"nur karton", r"karton\s*&",
+        r"vac[ií]a", r"vazia", r"\bseule?\b", r"empty box", r"\bvuota\b", r"\blot de\b", r"pi[eè]ces",
     ],
     "ram": [],
     "cpu": [],

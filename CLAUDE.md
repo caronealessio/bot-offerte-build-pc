@@ -26,6 +26,8 @@ bot-annunci-pc/
   bot/telegram.py               # sendMessage HTML; --dry-run stampa invece di inviare
   bot/sources/subito.py         # __NEXT_DATA__ → props.pageProps.initialState.items.originalList; prezzo "/price" SENZA punto migliaia ("1000")
   bot/sources/trovaprezzi.py    # li.listing_item ...; 404 = nessuna offerta
+  bot/sources/vinted.py         # usato: pagina /catalog (Next.js self.__next_f.push → "productItem"); internazionale (FR/DE/ES)
+  bot/sources/idealo.py         # nuovo (2ª fonte, niente marketplace) + offerte AliExpress: /risultati.html, JSON base64 in initialData['searchResult']
   bot/sources/ebay.py           # API Browse ufficiale (EBAY_CLIENT_ID/SECRET, facoltative)
   tests/test_bot.py             # test offline: python tests\test_bot.py
   data/stato.json               # SOLO LOCALE (ignorato da git): non va più su GitHub
@@ -35,7 +37,8 @@ Il `--dry-run` modifica comunque `data/stato.json`: fai una copia prima e ripris
 
 ## Regole di prezzo decise con Alessio (non cambiarle senza chiedere)
 - **Budget massimo** (deciso il 20/11/2026, `budget:` in config.yaml, spedizione inclusa): GPU 500 €, CPU 250 €, RAM 180 €. Sopra il budget non si avvisa mai (né usato né nuovo). Sotto il budget le etichette restano decise dalle mediane.
-- **Riferimento nuovo** = mediana a 30 giorni del prezzo minimo giornaliero su Trovaprezzi, spedizione inclusa. Negozi con ≥3,5★ e ≥30 recensioni, eBay escluso.
+- **Riferimento nuovo** = mediana a 30 giorni del prezzo minimo giornaliero tra Trovaprezzi e Idealo, spedizione inclusa. Trovaprezzi: negozi con ≥3,5★ e ≥30 recensioni. Idealo (niente recensioni): esclusi i marketplace. eBay e AliExpress esclusi.
+- Annunci sotto il 15% del nuovo ignorati (scatole, cavi, accessori). AliExpress passa come "annuncio" ma non entra nella mediana dell'usato.
 - **Tetto usato** = min(70% del riferimento nuovo, mediana a 30 giorni dell'usato). La mediana dell'usato vale solo con ≥5 campioni, outlier rimossi con IQR, ed esclude i prezzi sotto il 50% del nuovo (truffe).
 - Etichette usato: ✅ ≤ tetto · 🟡 50-60% del nuovo · 🔴 <50% = possibile truffa (si avvisa sempre).
 - Nuovo: 📉 avviso se ≤90% della mediana a 30 giorni o se è il minimo storico (dopo 7 giorni di storico).
@@ -53,7 +56,8 @@ PC di Alessio: AM4, B450M micro-ATX, PCIe 3.0, case Q300L (GPU max 360 mm), alim
 ## Piano
 1. ✅ curl_cffi, correzioni matching/prezzi, esecuzione locale con l'Utilità di pianificazione.
 2. Raspberry Pi: installare Python + requirements, copiare `.env` e `data/stato.json`, cron ogni 30 min; poi disattivare l'attività Windows.
-3. Poi: chiavi eBay (facoltative); fase 2 con Vinted, AliExpress e Idealo (anti-bot, best effort). Facebook Marketplace è escluso.
+3. ✅ Vinted, Idealo, AliExpress (solo tramite Idealo: la pagina AliExpress carica i prodotti con un'API firmata, non la usiamo).
+4. Chiavi eBay (facoltative, le crea Alessio). Facebook Marketplace è escluso (richiede login).
 
 ## Regole operative
 - Prima di ogni commit esegui i test. Messaggi di commit in italiano.

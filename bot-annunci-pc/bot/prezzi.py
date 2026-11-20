@@ -28,7 +28,7 @@ def migliore_offerta(prodotto: dict, offerte: list[Offerta], cfg_negozi: dict) -
     escludi = {n.lower() for n in cfg_negozi.get("escludi", [])}
     valide = []
     for o in offerte:
-        if not o.disponibile or o.negozio.lower() in escludi:
+        if not o.disponibile or any(e in o.negozio.lower() for e in escludi):
             continue
         if not corrisponde(prodotto, o.titolo):
             continue

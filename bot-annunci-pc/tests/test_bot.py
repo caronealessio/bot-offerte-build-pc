@@ -14,7 +14,7 @@ from bot import main as M  # noqa: E402
 from bot.common import Annuncio, euro  # noqa: E402
 from bot.matching import corrisponde, da_scartare  # noqa: E402
 from bot.prezzi import calcola_riferimenti, valuta_usato  # noqa: E402
-from bot.sources import ebay, subito, trovaprezzi  # noqa: E402
+from bot.sources import ebay, idealo, subito, trovaprezzi, vinted  # noqa: E402
 from bot.storico import Stato  # noqa: E402
 from bot.telegram import Telegram  # noqa: E402
 
@@ -84,6 +84,16 @@ def test_matching():
     assert corrisponde(PROD["rtx5060ti16"], "ASUS Dual NVIDIA GeForce RTX 5060 Ti 16GB GDDR7 OC Edition")
     assert corrisponde(PROD["rtx5070ti"], "PNY VGA PNY GeForce RTX 5070TI 16GB Gaming Triple Fan ARGB")
     assert corrisponde(PROD["rx7900xt"], "XFX Radeon RX 7900XT - Scheda grafica da gioco con GDDR6 da 20 GB")
+    # Vinted (internazionale): scatole, accessori, "Go" francese
+    for t in ["Boîte MSI GeForce RTX 5070 Ti Ventus 3X OC – Boîte seule",
+              "OVP Asus Tuf Gaming GeForce RTX 5070 Ti OC Edition • Nur Karton &amp; Zubehör",
+              "Caja vacia tarjeta gráfica 5070 ti geforce rtx",
+              "Cable adaptador 16 pines 2 8-pin a 12V 2 8 RTX 5070 5070 Ti 4070"]:
+        assert not corrisponde(PROD["rtx5070ti"], t), t
+    assert not corrisponde(PROD["rx7800xt"], "NEU* Sapphire rx7800xt original card holder White")
+    assert not corrisponde(PROD["rtx5060ti16"], "5060ti 8go quasi neuve")
+    assert corrisponde(PROD["rtx5060ti16"], "RTX 5060 Ti 16 Go Gigabyte")
+    assert corrisponde(PROD["rtx5070ti"], "MSI GeForce RTX 5070 Ti Gaming Trio OC 16GB con scatola")
     assert da_scartare("RX 9060 XT guasta", CFG["scarta_se_contiene"])
     assert da_scartare("Cerco RX 9060 XT", CFG["scarta_se_contiene"])
 
@@ -100,6 +110,59 @@ def test_parser_trovaprezzi():
     off = trovaprezzi.parse(html)
     assert off[0].totale == 716.39 and off[0].stelle == 4.5 and off[0].recensioni == 1234
     assert off[1].stelle == 2.0
+
+
+def vinted_html(items):
+    righe = []
+    for i, (titolo, totale, business) in enumerate(items):
+        righe.append({"id": i, "productItem": {
+            "id": 100 + i, "title": titolo, "url": f"/items/{100 + i}-x",
+            "price": {"amount": f"{totale - 5:.2f}", "currencyCode": "EUR"},
+            "totalItemPrice": {"amount": f"{totale:.2f}", "currencyCode": "EUR"},
+            "user": {"id": 7, "isBusiness": business},
+            "itemBox": {"firstLine": "Asus", "secondLine": "Ottime condizioni"}}})
+    flight = '1:["$","div",null,' + json.dumps({"items": righe}) + "]"
+    meta = len(flight) // 2  # i dati arrivano spezzati in più push
+    pezzi = [flight[:meta], flight[meta:]]
+    return "".join(f"<script>self.__next_f.push({json.dumps([1, p])})</script>" for p in pezzi)
+
+
+def idealo_html(items):
+    import base64
+    data = base64.b64encode(json.dumps({"items": items}).encode()).decode()
+    return f"<script>window.csr.initialData['searchResult'] = \"{data}\";</script>"
+
+
+def idealo_item(titolo, prezzo, negozio, sped="€ 0,00", tipo="PRODUCT", usato=False):
+    return {"id": titolo[:8], "type": tipo, "title": titolo, "rawPrice": prezzo,
+            "href": "https://www.idealo.it/confronta-prezzi/1.html",
+            "offerInfo": {"usedOnly": usato, "offerCount": 3, "leadoutHref": "https://www.idealo.it/relocator/x"},
+            "shopInfo": {"shopName": negozio, "shippingCosts": sped}}
+
+
+def test_parser_vinted():
+    ads = vinted.parse(vinted_html([("AMD Rx 9060xT 16gb", 683.20, False), ("RX 9060 XT 16GB", 420.0, True)]))
+    assert len(ads) == 2
+    assert ads[0].totale == 683.2 and ads[0].fonte == "Vinted" and ads[0].spedizione == 0
+    assert ads[0].url == "https://www.vinted.it/items/100-x" and ads[1].negozio is True
+
+
+def test_parser_idealo():
+    items = idealo.parse(idealo_html([
+        idealo_item("Sapphire Radeon RX 9060 XT Pulse 16G", 562.08, "Amazon.it"),
+        idealo_item("AMD Ryzen 7 5700X3D", 399, "ebay.it", usato=True),
+        idealo_item("Ventola RX 9060 XT", 18.0, "amazon-marketplace.it", tipo="OFFER"),
+        idealo_item("AMD Ryzen 7 5700X3D", 180.5, "it.aliexpress.com", sped="€ 2,50"),
+        idealo_item("AMD Radeon RX 7900 GRE", 2174.95, "amazon-marketplace.it"),
+        idealo_item("AMD Radeon RX 7900 GRE", 2100, "mediaworld.it (MKP)"),
+    ]))
+    off = idealo.offerte(items)
+    assert [o.totale for o in off] == [562.08, 183.0]          # niente usato, annunci sciolti, marketplace
+    ali = idealo.aliexpress(items)
+    assert len(ali) == 1 and ali[0].totale == 183.0 and ali[0].fonte == "AliExpress"
+    from bot.prezzi import migliore_offerta
+    p = PROD["r7_5700x3d"]
+    assert migliore_offerta(p, off, CFG["negozi"]) is None      # AliExpress non fa da riferimento
 
 
 def test_parser_ebay():
@@ -161,6 +224,8 @@ def test_giro_completo(monkeypatch=None):
               tp_li("RX 9060 XT 16GB", "eBay", "450,00 €") + "</ul>"
     subito.cerca = lambda http, q: subito.parse(sub_page)
     trovaprezzi.cerca = lambda http, url: trovaprezzi.parse(tp_page)
+    vinted.cerca = lambda http, q: []
+    idealo.cerca = lambda http, q: []
     cfg = dict(CFG)
     cfg["prodotti"] = [PROD["rx9060xt16"]]
     with tempfile.TemporaryDirectory() as d:

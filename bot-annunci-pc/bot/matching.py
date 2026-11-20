@@ -7,7 +7,10 @@ from .common import ESCLUSIONI_TIPO
 
 
 def _norm(t: str) -> str:
-    return re.sub(r"\s+", " ", (t or "").lower())
+    t = re.sub(r"\s+", " ", (t or "").lower())
+    t = t.replace("&amp;", "&")
+    # francese: "16 Go" = 16 GB
+    return re.sub(r"(\d)\s?go\b", r"\1gb", t)
 
 
 def corrisponde(prodotto: dict, titolo: str) -> bool:
