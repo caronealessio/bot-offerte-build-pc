@@ -5,10 +5,10 @@ Ambiente: Windows 11, PowerShell, repo in `C:\Workspace\bot-offerte-build-pc`. I
 
 ## Cos'è
 È un bot Python che cerca componenti PC usati e nuovi e manda avvisi su Telegram con un'etichetta anti-truffa.
-**Gira sul PC di Alessio** con l'Utilità di pianificazione: attività `Bot annunci PC`, ogni 30 min, lancia `esegui-bot.ps1` (log in `logs/`, 14 giorni). Token in `.env` nella radice del repo (ignorato da git, modello in `.env.example`); senza token lo script non parte.
+**Gira sul PC di Alessio** con l'Utilità di pianificazione: attività `Bot annunci PC`, ogni 10 min (Trovaprezzi/Idealo ogni 2 h), lancia `esegui-bot.ps1` (log in `logs/`, 14 giorni). Token in `.env` nella radice del repo (ignorato da git, modello in `.env.example`); senza token lo script non parte.
 Motivo: Trovaprezzi risponde 403 agli IP di GitHub Actions anche con curl_cffi (Subito invece funziona da GitHub).
 Il workflow `.github/workflows/bot.yml` (repo `caronealessio/bot-offerte-build-pc`) è rimasto solo con avvio manuale (`workflow_dispatch`, `modalita`: `normale` | `test-telegram`), senza storico persistente.
-Prossimo passo: spostare il bot su un **Raspberry Pi** (Linux, cron ogni 30 min, stesso `.env`).
+Prossimo passo: spostare il bot su un **Raspberry Pi** (Linux, cron ogni 10 min, stesso `.env`).
 
 ## Struttura (attenzione: il codice è nella SOTTOCARTELLA `bot-annunci-pc/`)
 ```
@@ -57,7 +57,7 @@ PC di Alessio: AM4, B450M micro-ATX, PCIe 3.0, case Q300L (GPU max 360 mm), alim
 
 ## Piano
 1. ✅ curl_cffi, correzioni matching/prezzi, esecuzione locale con l'Utilità di pianificazione.
-2. Raspberry Pi: installare Python + requirements, copiare `.env` e `data/stato.json`, cron ogni 30 min; poi disattivare l'attività Windows.
+2. Raspberry Pi: installare Python + requirements, copiare `.env` e `data/stato.json`, cron ogni 10 min; poi disattivare l'attività Windows.
 3. ✅ Vinted, Idealo, AliExpress (solo tramite Idealo: la pagina AliExpress carica i prodotti con un'API firmata, non la usiamo).
 4. Chiavi eBay (facoltative, le crea Alessio). Facebook Marketplace è escluso (richiede login).
 
