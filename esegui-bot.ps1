@@ -19,7 +19,8 @@ if ($args -notcontains '--dry-run' -and -not $env:TELEGRAM_TOKEN -and
 $env:PYTHONIOENCODING = 'utf-8'
 Set-Location (Join-Path $root 'bot-annunci-pc')
 "===== $(Get-Date -Format 'yyyy-MM-dd HH:mm:ss') =====" | Out-File $log -Append -Encoding utf8
-& $py -m bot.main @args 2>&1 | ForEach-Object { "$_" } | Out-File $log -Append -Encoding utf8
+# cmd scrive i byte di Python così come sono (UTF-8), senza ricodifiche di PowerShell
+cmd /c "`"$py`" -m bot.main $($args -join ' ') >> `"$log`" 2>&1"
 "exit $LASTEXITCODE" | Out-File $log -Append -Encoding utf8
 
 # conserva solo gli ultimi 14 giorni di log
