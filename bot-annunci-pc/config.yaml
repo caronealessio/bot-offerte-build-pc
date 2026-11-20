@@ -1,0 +1,192 @@
+# =====================================================================
+#  CONFIGURAZIONE DEL BOT ANNUNCI PC
+#  Puoi modificare questo file direttamente dal sito di GitHub
+#  (apri il file -> icona matita -> "Commit changes").
+# =====================================================================
+
+# --- Regole di prezzo (percentuali sul riferimento del NUOVO) ---------
+regole:
+  giorni_mediana: 30          # finestra per le mediane
+  usato_max_su_nuovo: 0.70    # usato "buon prezzo" se <= 70% del nuovo
+  soglia_affare: 0.60         # sotto il 60% -> etichetta gialla "affare, verifica"
+  soglia_truffa: 0.50         # sotto il 50% -> etichetta rossa "possibile truffa"
+  nuovo_calo: 0.90            # nuovo: avvisa se <= 90% della mediana 30 gg
+  min_campioni_usato: 5       # annunci minimi per fidarsi della mediana usato
+  min_giorni_storico_nuovo: 7 # giorni minimi prima di segnalare "minimo storico"
+
+# --- Filtri sui negozi (per calcolare il prezzo del nuovo) ------------
+negozi:
+  stelle_minime: 3.5          # media recensioni del negozio su Trovaprezzi
+  recensioni_minime: 30
+  escludi:                    # marketplace/negozi da non usare come riferimento
+    - eBay
+
+# --- Frequenze ---------------------------------------------------------
+frequenze:
+  nuovo_ogni_ore: 2           # quanto spesso rileggere Trovaprezzi
+  riepilogo_settimanale: lunedi
+
+# --- Parole che scartano un annuncio (titolo o descrizione) -----------
+scarta_se_contiene:
+  - guast
+  - non funzionant
+  - "per pezzi"
+  - "per ricambi"
+  - "solo scatola"
+  - "scatola vuota"
+  - "box vuoto"
+  - "\\bcerco\\b"
+  - "\\bcompro\\b"
+  - "\\bscambio\\b"
+  - "\\bscambi\\b"
+  - difettos
+  - "da riparare"
+  - "artefatti"
+  - "no video"
+
+# --- Parole sospette nella descrizione (aggiungono un avviso) ---------
+sospetto_se_contiene:
+  - bonifico
+  - "amici e familiari"
+  - "amici e parenti"
+  - "friends"
+  - whatsapp
+  - telegram
+  - "solo spedizione"
+  - "scrivimi (a|su|alla) "
+  - "@gmail"
+  - "@hotmail"
+  - "@libero"
+  - "\\+39"
+  - "\\b3\\d{2}[ .]?\\d{6,7}\\b"
+  - "ricarica postepay"
+  - postepay
+
+# --- Prodotti da cercare -----------------------------------------------
+# tutti:   espressioni che DEVONO comparire nel titolo
+# escludi: espressioni che NON devono comparire nel titolo
+# subito / ebay: testi di ricerca
+# trovaprezzi: pagina offerte (ordinata per prezzo totale)
+prodotti:
+
+  # ---------------- SCHEDE VIDEO ----------------
+  - id: rx9060xt16
+    nome: "RX 9060 XT 16GB"
+    tipo: gpu
+    tutti: ["9060\\s?xt"]
+    escludi: ["\\b8\\s?gb?\\b", "\\b8g\\b"]
+    subito: ["rx 9060 xt"]
+    ebay: "rx 9060 xt 16gb"
+    trovaprezzi: "https://www.trovaprezzi.it/prezzo_schede-grafiche_rx_9060_xt_16gb.aspx?sort=prezzo_totale"
+
+  - id: rx9070
+    nome: "RX 9070"
+    tipo: gpu
+    tutti: ["9070"]
+    escludi: ["9070\\s?xt", "\\bxt\\b", "9070\\s?gre", "\\bgre\\b", "\\b12\\s?gb?\\b"]
+    subito: ["rx 9070"]
+    ebay: "rx 9070"
+    trovaprezzi: "https://www.trovaprezzi.it/prezzo_schede-grafiche_rx_9070.aspx?sort=prezzo_totale"
+
+  - id: rx9070xt
+    nome: "RX 9070 XT"
+    tipo: gpu
+    tutti: ["9070\\s?xt"]
+    escludi: []
+    subito: ["rx 9070 xt"]
+    ebay: "rx 9070 xt"
+    trovaprezzi: "https://www.trovaprezzi.it/prezzo_schede-grafiche_rx_9070_xt.aspx?sort=prezzo_totale"
+
+  - id: rx7800xt
+    nome: "RX 7800 XT"
+    tipo: gpu
+    tutti: ["7800\\s?xt"]
+    escludi: []
+    subito: ["rx 7800 xt"]
+    ebay: "rx 7800 xt"
+    trovaprezzi: "https://www.trovaprezzi.it/prezzo_schede-grafiche_rx_7800_xt.aspx?sort=prezzo_totale"
+
+  - id: rx7900gre
+    nome: "RX 7900 GRE"
+    tipo: gpu
+    tutti: ["7900\\s?gre"]
+    escludi: []
+    subito: ["rx 7900 gre"]
+    ebay: "rx 7900 gre"
+    trovaprezzi: "https://www.trovaprezzi.it/prezzo_schede-grafiche_rx_7900_gre.aspx?sort=prezzo_totale"
+
+  - id: rx7900xt
+    nome: "RX 7900 XT"
+    tipo: gpu
+    tutti: ["7900\\s?xt"]
+    escludi: ["7900\\s?xtx", "\\bxtx\\b"]
+    subito: ["rx 7900 xt"]
+    ebay: "rx 7900 xt"
+    trovaprezzi: "https://www.trovaprezzi.it/prezzo_schede-grafiche_rx_7900_xt.aspx?sort=prezzo_totale"
+
+  - id: rtx5060ti16
+    nome: "RTX 5060 Ti 16GB"
+    tipo: gpu
+    tutti: ["5060\\s?ti"]
+    escludi: ["\\b8\\s?gb?\\b", "\\b8g\\b"]
+    subito: ["rtx 5060 ti"]
+    ebay: "rtx 5060 ti 16gb"
+    trovaprezzi: "https://www.trovaprezzi.it/prezzo_schede-grafiche_rtx_5060_ti_16gb.aspx?sort=prezzo_totale"
+
+  - id: rtx5070ti
+    nome: "RTX 5070 Ti"
+    tipo: gpu
+    tutti: ["5070\\s?ti"]
+    escludi: []
+    subito: ["rtx 5070 ti"]
+    ebay: "rtx 5070 ti"
+    trovaprezzi: "https://www.trovaprezzi.it/prezzo_schede-grafiche_rtx_5070_ti.aspx?sort=prezzo_totale"
+
+  - id: rtx4070tis
+    nome: "RTX 4070 Ti Super"
+    tipo: gpu
+    tutti: ["4070\\s?ti", "super"]
+    escludi: []
+    subito: ["4070 ti super"]
+    ebay: "rtx 4070 ti super"
+    trovaprezzi: "https://www.trovaprezzi.it/prezzo_schede-grafiche_rtx_4070_ti_super.aspx?sort=prezzo_totale"
+
+  # ---------------- RAM ----------------
+  - id: ddr4_32_3600
+    nome: "DDR4 32GB (2x16) 3600 CL18 o meglio"
+    tipo: ram
+    tutti: ["ddr4", "3600", "(2\\s?x\\s?16|16\\s?gb?\\s?x\\s?2|16\\s?x\\s?2)"]
+    escludi: ["so-?dimm", "laptop", "notebook", "portatil", "ddr5", "4\\s?x\\s?8", "2\\s?x\\s?8\\b"]
+    cl_max: 18
+    subito: ["ddr4 32gb 3600", "ddr4 2x16 3600"]
+    ebay: "ddr4 32gb 2x16 3600"
+    trovaprezzi: "https://www.trovaprezzi.it/prezzo_ram_ddr4_32gb_2x16gb_3600.aspx?sort=prezzo_totale"
+
+  - id: ddr4_32_3200
+    nome: "DDR4 32GB (2x16) 3200 CL16"
+    tipo: ram
+    tutti: ["ddr4", "3200", "(2\\s?x\\s?16|16\\s?gb?\\s?x\\s?2|16\\s?x\\s?2)"]
+    escludi: ["so-?dimm", "laptop", "notebook", "portatil", "ddr5", "4\\s?x\\s?8", "2\\s?x\\s?8\\b"]
+    cl_max: 16
+    subito: ["ddr4 32gb 3200", "ddr4 2x16 3200"]
+    ebay: "ddr4 32gb 2x16 3200 cl16"
+    trovaprezzi: "https://www.trovaprezzi.it/prezzo_ram_ddr4_32gb_2x16gb_3200_cl16.aspx?sort=prezzo_totale"
+
+  # ---------------- CPU ----------------
+  - id: r7_5700x3d
+    nome: "Ryzen 7 5700X3D"
+    tipo: cpu
+    tutti: ["5700\\s?x3d"]
+    escludi: ["\\bpc\\b", "computer", "bundle", "kit", "scheda madre", "\\bb[45]50", "\\bx[45]70", "rtx", "\\brx\\b", "gtx"]
+    subito: ["5700x3d"]
+    ebay: "ryzen 7 5700x3d"
+    trovaprezzi: "https://www.trovaprezzi.it/prezzo_processori_ryzen_7_5700x3d.aspx?sort=prezzo_totale"
+
+  - id: r7_5800x3d
+    nome: "Ryzen 7 5800X3D"
+    tipo: cpu
+    tutti: ["5800\\s?x3d"]
+    escludi: ["\\bpc\\b", "computer", "bundle", "kit", "scheda madre", "\\bb[45]50", "\\bx[45]70", "rtx", "\\brx\\b", "gtx"]
+    subito: ["5800x3d"]
+    ebay: "ryzen 7 5800x3d"
+    trovaprezzi: "https://www.trovaprezzi.it/prezzo_processori_ryzen_7_5800x3d.aspx?sort=prezzo_totale"

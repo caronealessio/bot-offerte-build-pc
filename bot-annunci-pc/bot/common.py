@@ -1,0 +1,117 @@
+"""Strutture dati e funzioni comuni."""
+from __future__ import annotations
+
+import re
+import time
+from dataclasses import dataclass, field
+
+import requests
+
+USER_AGENT = (
+    "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 "
+    "(KHTML, like Gecko) Chrome/131.0.0.0 Safari/537.36"
+)
+
+# Esclusioni automatiche per tipo di componente (PC completi, notebook...)
+ESCLUSIONI_TIPO = {
+    "gpu": [r"\bpc\b", r"computer", r"\bryzen\b", r"\bi[3579][ -]?\d", r"intel core",
+            r"notebook", r"portatil", r"laptop", r"\bwaterblock\b", r"\bdissipatore\b"],
+    "ram": [],
+    "cpu": [],
+}
+
+
+@dataclass
+class Annuncio:
+    """Annuncio di un usato (Subito, eBay, Vinted...)."""
+    fonte: str
+    id: str
+    titolo: str
+    prezzo: float
+    spedizione: float | None      # None = solo ritiro / non indicata
+    url: str
+    luogo: str = ""
+    descrizione: str = ""
+    venditore: str = ""
+    negozio: bool = False          # venditore professionale
+    feedback: int | None = None    # numero feedback (eBay)
+    feedback_pct: float | None = None
+    condizione: str = ""
+
+    @property
+    def chiave(self) -> str:
+        return f"{self.fonte}:{self.id}"
+
+    @property
+    def totale(self) -> float:
+        return round(self.prezzo + (self.spedizione or 0), 2)
+
+
+@dataclass
+class Offerta:
+    """Offerta di un negozio (prodotto nuovo)."""
+    negozio: str
+    titolo: str
+    totale: float
+    url: str
+    stelle: float | None = None
+    recensioni: int | None = None
+    disponibile: bool = True
+    extra: dict = field(default_factory=dict)
+
+
+def euro(testo: str) -> float | None:
+    """'1.234,56 €' -> 1234.56"""
+    if testo is None:
+        return None
+    m = re.search(r"(\d{1,3}(?:\.\d{3})*(?:,\d{1,2})?|\d+(?:,\d{1,2})?)", testo.replace("\xa0", " "))
+    if not m:
+        return None
+    return float(m.group(1).replace(".", "").replace(",", "."))
+
+
+def fmt_euro(v: float | None) -> str:
+    if v is None:
+        return "n.d."
+    s = f"{v:,.2f}".replace(",", "X").replace(".", ",").replace("X", ".")
+    return f"{s} €"
+
+
+class Http:
+    """Sessione HTTP con header da browser, pause e ritentativi."""
+
+    def __init__(self, pausa: float = 1.5):
+        self.s = requests.Session()
+        self.s.headers.update({
+            "User-Agent": USER_AGENT,
+            "Accept-Language": "it-IT,it;q=0.9,en;q=0.6",
+            "Accept": "text/html,application/xhtml+xml,application/json;q=0.9,*/*;q=0.8",
+        })
+        self.pausa = pausa
+        self._ultima = 0.0
+
+    def get(self, url: str, **kw) -> requests.Response:
+        ultimo_err = None
+        for tentativo in range(3):
+            attesa = self.pausa - (time.time() - self._ultima)
+            if attesa > 0:
+                time.sleep(attesa)
+            try:
+                r = self.s.get(url, timeout=25, **kw)
+                self._ultima = time.time()
+                if r.status_code in (429, 500, 502, 503, 504):
+                    raise requests.HTTPError(f"HTTP {r.status_code}")
+                r.raise_for_status()
+                return r
+            except requests.RequestException as e:  # noqa: PERF203
+                resp = getattr(e, "response", None)
+                if resp is not None and 400 <= resp.status_code < 500 and resp.status_code != 429:
+                    raise  # errori 4xx (es. 404, 403): inutile ritentare
+                ultimo_err = e
+                time.sleep(3 * (tentativo + 1))
+        raise ultimo_err  # type: ignore[misc]
+
+    def post(self, url: str, **kw) -> requests.Response:
+        r = self.s.post(url, timeout=25, **kw)
+        r.raise_for_status()
+        return r

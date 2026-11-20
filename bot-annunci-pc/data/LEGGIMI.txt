@@ -1,0 +1,1 @@
+Qui il bot salva automaticamente lo storico prezzi (stato.json). Non modificare.
