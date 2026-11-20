@@ -1,10 +1,14 @@
 """Calcolo riferimenti, tetti ed etichette."""
 from __future__ import annotations
 
+import statistics
 from dataclasses import dataclass
 
 from .common import Annuncio, Offerta
 from .matching import corrisponde
+
+# Un'offerta del nuovo sotto il 50% della mediana delle offerte valide è un errore
+PREZZO_MIN_SU_MEDIANA_OFFERTE = 0.5
 
 
 @dataclass
@@ -33,6 +37,10 @@ def migliore_offerta(prodotto: dict, offerte: list[Offerta], cfg_negozi: dict) -
         if o.recensioni is not None and o.recensioni < cfg_negozi.get("recensioni_minime", 0):
             continue
         valide.append(o)
+    if len(valide) >= 3:
+        # scarta prezzi assurdi (accessori o inserzioni sbagliate sfuggiti al filtro)
+        med = statistics.median(o.totale for o in valide)
+        valide = [o for o in valide if o.totale >= med * PREZZO_MIN_SU_MEDIANA_OFFERTE]
     return min(valide, key=lambda o: o.totale) if valide else None
 
 

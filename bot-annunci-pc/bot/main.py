@@ -121,9 +121,26 @@ class Esecuzione:
                 print(f"[{p['id']}] eBay errore: {e}")
         return list(trovati.values())
 
+    def riferimenti(self, pid: str):
+        """Riferimenti di prezzo; la mediana dell'usato ignora i prezzi da truffa."""
+        g = self.regole["giorni_mediana"]
+        nuovo_oggi = self.stato.nuovo_oggi(pid)
+        med_nuovo = self.stato.mediana_nuovo(pid, g)
+        pavimento = self._pavimento_usato(pid)
+        return calcola_riferimenti(
+            nuovo_oggi, med_nuovo,
+            self.stato.mediana_usato(pid, g, self.regole["min_campioni_usato"], pavimento),
+            self.regole,
+        )
+
+    def _pavimento_usato(self, pid: str) -> float | None:
+        rif_nuovo = self.stato.mediana_nuovo(pid, self.regole["giorni_mediana"]) or self.stato.nuovo_oggi(pid)
+        return rif_nuovo * self.regole["soglia_truffa"] if rif_nuovo else None
+
     def usato(self, p: dict):
         pid = p["id"]
         primo_giro = not self.stato.get_meta(f"init_{pid}")
+        pavimento = self._pavimento_usato(pid)
         annunci = []
         for a in self._raccogli_usato(p):
             if not corrisponde(p, a.titolo):
@@ -133,15 +150,10 @@ class Esecuzione:
             if a.prezzo < 20:  # prezzi simbolici ("1 €", "trattabile")
                 continue
             annunci.append(a)
-            self.stato.registra_usato(pid, a.chiave, a.totale)
+            if pavimento is None or a.totale >= pavimento:  # le truffe non entrano nella mediana
+                self.stato.registra_usato(pid, a.chiave, a.totale)
 
-        g = self.regole["giorni_mediana"]
-        rif = calcola_riferimenti(
-            self.stato.nuovo_oggi(pid),
-            self.stato.mediana_nuovo(pid, g),
-            self.stato.mediana_usato(pid, g, self.regole["min_campioni_usato"]),
-            self.regole,
-        )
+        rif = self.riferimenti(pid)
 
         da_inviare = []
         for a in annunci:
@@ -223,17 +235,10 @@ class Esecuzione:
                 e["avvisato"] = True
 
     def riepilogo(self, iniziale: bool = False):
-        g = self.regole["giorni_mediana"]
         titolo = "🤖 <b>Bot attivo!</b> Riferimenti di partenza:" if iniziale else "🗓️ <b>Riepilogo settimanale</b>"
         righe = [titolo, ""]
         for p in self.cfg["prodotti"]:
-            pid = p["id"]
-            rif = calcola_riferimenti(
-                self.stato.nuovo_oggi(pid),
-                self.stato.mediana_nuovo(pid, g),
-                self.stato.mediana_usato(pid, g, self.regole["min_campioni_usato"]),
-                self.regole,
-            )
+            rif = self.riferimenti(p["id"])
             righe.append(
                 f"<b>{esc(p['nome'])}</b>: nuovo {fmt_euro(rif.nuovo_oggi)} · "
                 f"mediana nuovo {fmt_euro(rif.mediana_nuovo)} · mediana usato {fmt_euro(rif.mediana_usato)} · "

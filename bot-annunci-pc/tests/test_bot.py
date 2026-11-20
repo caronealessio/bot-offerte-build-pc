@@ -71,6 +71,13 @@ def test_matching():
     assert corrisponde(c, "CPU AMD Ryzen 7 5700X3D")
     assert not corrisponde(c, "Bundle Ryzen 5700X3D + ASUS TUF Gaming B550M-Plus")
     assert not corrisponde(c, "AMD Ryzen 7 5700X processore 3,4 GHz")
+    # casi reali (dry-run 20/11/2026): accessori e PC completi
+    assert not corrisponde(PROD["rx7900xt"], "OEM Cavo riser PCIe 4.0 x16, flessibile a 180°, per schede grafiche RTX 4090, RX 7900 XT")
+    assert not corrisponde(PROD["rtx5060ti16"], "ULTRA 7 270 PLUS - RTX 5060 TI - 32 GB - 1TB+256GB")
+    assert not corrisponde(PROD["rtx5060ti16"], "Workstation compatta Ultra 7 265K RTX 5060 Ti 16GB")
+    assert corrisponde(PROD["rtx5060ti16"], "ASUS Dual NVIDIA GeForce RTX 5060 Ti 16GB GDDR7 OC Edition")
+    assert corrisponde(PROD["rtx5070ti"], "PNY VGA PNY GeForce RTX 5070TI 16GB Gaming Triple Fan ARGB")
+    assert corrisponde(PROD["rx7900xt"], "XFX Radeon RX 7900XT - Scheda grafica da gioco con GDDR6 da 20 GB")
     assert da_scartare("RX 9060 XT guasta", CFG["scarta_se_contiene"])
     assert da_scartare("Cerco RX 9060 XT", CFG["scarta_se_contiene"])
 
@@ -111,6 +118,28 @@ def test_soglie():
     assert valuta_usato(mk(250), rif, R)[1].startswith("🔴")   # 45%
     solo_usato = calcola_riferimenti(None, None, 250, R)
     assert solo_usato.base == "usato" and valuta_usato(mk(240), solo_usato, R)[0]
+
+
+def test_offerta_assurda_scartata():
+    from bot.common import Offerta
+    from bot.prezzi import migliore_offerta
+    p = PROD["rx9070"]
+    off = [Offerta("Kaufland", "RX 9070 16GB staffa?", 83.95, "u", 4.5, 300),
+           Offerta("A", "PowerColor RX 9070 16GB", 800, "u", 4.5, 300),
+           Offerta("B", "Sapphire RX 9070 16GB", 820, "u", 4.5, 300),
+           Offerta("C", "ASUS RX 9070 16GB", 850, "u", 4.5, 300)]
+    assert migliore_offerta(p, off, CFG["negozi"]).totale == 800
+
+
+def test_mediana_usato_ignora_truffe():
+    with tempfile.TemporaryDirectory() as d:
+        st = Stato(Path(d) / "stato.json")
+        for i, prezzo in enumerate([100, 110, 125, 140, 145, 410, 900, 950, 1000, 1050]):
+            st.registra_usato("x", f"s:{i}", prezzo)
+        assert st.mediana_usato("x", 30, 5) < 400                    # senza filtro: falsata
+        assert st.mediana_usato("x", 30, 5, prezzo_min=725) is None   # 4 campioni validi < 5
+        st.registra_usato("x", "s:99", 880)
+        assert st.mediana_usato("x", 30, 5, prezzo_min=725) == 950
 
 
 def test_giro_completo(monkeypatch=None):

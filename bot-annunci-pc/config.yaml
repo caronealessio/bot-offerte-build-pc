@@ -86,7 +86,7 @@ prodotti:
     escludi: ["9070\\s?xt", "\\bxt\\b", "9070\\s?gre", "\\bgre\\b", "\\b12\\s?gb?\\b"]
     subito: ["rx 9070"]
     ebay: "rx 9070"
-    trovaprezzi: "https://www.trovaprezzi.it/prezzo_schede-grafiche_rx_9070.aspx?sort=prezzo_totale"
+    trovaprezzi: "https://www.trovaprezzi.it/prezzo_schede-grafiche_rx_9070_16gb.aspx?sort=prezzo_totale"
 
   - id: rx9070xt
     nome: "RX 9070 XT"

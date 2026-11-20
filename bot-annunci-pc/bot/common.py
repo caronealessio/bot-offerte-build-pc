@@ -14,8 +14,15 @@ USER_AGENT = (
 
 # Esclusioni automatiche per tipo di componente (PC completi, notebook...)
 ESCLUSIONI_TIPO = {
-    "gpu": [r"\bpc\b", r"computer", r"\bryzen\b", r"\bi[3579][ -]?\d", r"intel core",
-            r"notebook", r"portatil", r"laptop", r"\bwaterblock\b", r"\bdissipatore\b"],
+    "gpu": [
+        # PC completi e notebook
+        r"\bpc\b", r"computer", r"workstation", r"desktop", r"\bryzen\b", r"\bi[3579][ -]?\d",
+        r"intel core", r"\bultra [3579]\b", r"\b\d+\s?tb\b", r"\bssd\b", r"\bnvme\b",
+        r"\b(32|64)\s?gb\b", r"notebook", r"portatil", r"laptop",
+        # accessori che citano il modello della scheda
+        r"\bwaterblock\b", r"\bdissipatore\b", r"riser", r"\bcavo\b", r"\bcable\b",
+        r"adattatore", r"\bstaffa\b", r"anti-?sag", r"backplate",
+    ],
     "ram": [],
     "cpu": [],
 }
@@ -112,6 +119,7 @@ class Http:
 
     def get(self, url: str, **kw):
         ultimo_err: Exception | None = None
+        ritentato_403 = False
         for tentativo in range(3):
             attesa = self.pausa - (time.time() - self._ultima)
             if attesa > 0:
@@ -131,7 +139,14 @@ class Http:
                 ultimo_err = err
                 time.sleep(3 * (tentativo + 1))
                 continue
-            raise err  # 4xx (403, 404...): inutile ritentare
+            if r.status_code == 403 and not ritentato_403:
+                # spesso il primo accesso viene rifiutato e il secondo (con i cookie
+                # ricevuti) passa: un solo nuovo tentativo, dopo una pausa più lunga
+                ritentato_403 = True
+                ultimo_err = err
+                time.sleep(6)
+                continue
+            raise err  # altri 4xx (404...): inutile ritentare
         raise ultimo_err  # type: ignore[misc]
 
     def post(self, url: str, **kw):

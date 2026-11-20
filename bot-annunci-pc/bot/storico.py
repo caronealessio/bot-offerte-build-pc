@@ -68,13 +68,16 @@ class Stato:
         if chiave not in st:
             st[chiave] = [oggi(), prezzo]
 
-    def campioni_usato(self, pid: str, giorni: int) -> list[float]:
+    def campioni_usato(self, pid: str, giorni: int, prezzo_min: float | None = None) -> list[float]:
         st = self.d["usato"].get(pid, {})
         lim = (date.fromisoformat(oggi()) - timedelta(days=giorni)).isoformat()
-        return [p for g, p in st.values() if g >= lim]
+        return [p for g, p in st.values() if g >= lim and (prezzo_min is None or p >= prezzo_min)]
 
-    def mediana_usato(self, pid: str, giorni: int, minimo: int) -> float | None:
-        vals = pulisci_outlier(self.campioni_usato(pid, giorni))
+    def mediana_usato(self, pid: str, giorni: int, minimo: int,
+                      prezzo_min: float | None = None) -> float | None:
+        """prezzo_min: esclude i prezzi da "possibile truffa", che altrimenti
+        abbassano la mediana (es. tanti annunci falsi a 100 € per una GPU da 1.400 €)."""
+        vals = pulisci_outlier(self.campioni_usato(pid, giorni, prezzo_min))
         if len(vals) < minimo:
             return None
         return round(statistics.median(vals), 2)
