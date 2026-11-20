@@ -253,7 +253,22 @@ class Esecuzione:
         self.tg.invia("\n".join(righe))
 
 
+def carica_env(path: Path):
+    """Legge un file .env (CHIAVE=valore) se esiste; le variabili già impostate vincono."""
+    if not path.exists():
+        return
+    import os
+    for riga in path.read_text(encoding="utf-8-sig").splitlines():
+        riga = riga.strip()
+        if not riga or riga.startswith("#") or "=" not in riga:
+            continue
+        k, v = riga.split("=", 1)
+        os.environ.setdefault(k.strip(), v.strip().strip('"').strip("'"))
+
+
 def main(argv=None) -> int:
+    carica_env(ROOT.parent / ".env")
+    carica_env(ROOT / ".env")
     ap = argparse.ArgumentParser()
     ap.add_argument("--dry-run", action="store_true")
     ap.add_argument("--test-telegram", action="store_true")

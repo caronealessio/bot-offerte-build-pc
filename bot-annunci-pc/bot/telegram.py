@@ -19,6 +19,8 @@ class Telegram:
         self.token = os.getenv("TELEGRAM_TOKEN", "")
         self.chat_id = os.getenv("TELEGRAM_CHAT_ID", "")
         self.dry_run = dry_run or not (self.token and self.chat_id)
+        if self.dry_run and not dry_run:
+            print("ATTENZIONE: TELEGRAM_TOKEN/TELEGRAM_CHAT_ID mancanti, i messaggi vengono solo stampati.")
         self.inviati = 0
 
     def invia(self, testo: str):

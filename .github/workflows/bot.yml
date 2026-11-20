@@ -1,8 +1,8 @@
 name: Bot annunci PC
 
+# Esecuzione automatica spostata sul PC di casa (Trovaprezzi blocca gli IP di GitHub).
+# Qui resta solo l'avvio manuale.
 on:
-  schedule:
-    - cron: "*/30 * * * *"
   workflow_dispatch:
     inputs:
       modalita:
