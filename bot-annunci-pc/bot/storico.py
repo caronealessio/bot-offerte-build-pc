@@ -46,6 +46,12 @@ class Stato:
     def segna_visto(self, chiave: str, prezzo: float):
         self.d["visti"][chiave] = [oggi(), prezzo]
 
+    def rivisto(self, chiave: str):
+        """Annuncio ancora online: rinnova la data (il prezzo ricordato resta quello)."""
+        v = self.d["visti"].get(chiave)
+        if v:
+            v[0] = oggi()
+
     def prezzo_visto(self, chiave: str) -> float | None:
         v = self.d["visti"].get(chiave)
         return v[1] if v else None

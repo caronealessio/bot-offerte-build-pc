@@ -86,7 +86,7 @@ prodotti:
     tipo: gpu
     tutti: ["9060\\s?xt"]
     escludi: ["\\b8\\s?gb?\\b", "\\b8g\\b"]
-    idealo_tutti: ["16\\s?g"]     # su Idealo il nome senza "16G" può essere la versione 8GB
+    richiede: ["16\\s?g"]         # "16GB" deve comparire in titolo o descrizione (se no può essere l'8GB)
     subito: ["rx 9060 xt"]
     ebay: "rx 9060 xt 16gb"
     trovaprezzi: "https://www.trovaprezzi.it/prezzo_schede-grafiche_rx_9060_xt_16gb.aspx?sort=prezzo_totale"
@@ -141,7 +141,7 @@ prodotti:
     tipo: gpu
     tutti: ["5060\\s?ti"]
     escludi: ["\\b8\\s?gb?\\b", "\\b8g\\b"]
-    idealo_tutti: ["16\\s?g"]
+    richiede: ["16\\s?g"]
     subito: ["rtx 5060 ti"]
     ebay: "rtx 5060 ti 16gb"
     trovaprezzi: "https://www.trovaprezzi.it/prezzo_schede-grafiche_rtx_5060_ti_16gb.aspx?sort=prezzo_totale"

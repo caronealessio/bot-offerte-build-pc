@@ -29,6 +29,14 @@ def corrisponde(prodotto: dict, titolo: str) -> bool:
     return True
 
 
+def richiesti_ok(prodotto: dict, testo: str) -> bool:
+    """Espressioni "richiede": devono comparire nel testo (titolo + descrizione).
+    Serve per i modelli con più versioni (es. 9060 XT 8GB/16GB): se l'annuncio
+    non dice "16GB" da nessuna parte, potrebbe essere l'8GB e si scarta."""
+    t = _norm(testo)
+    return all(re.search(rx, t) for rx in prodotto.get("richiede", []))
+
+
 def latenza_cl(testo: str) -> int | None:
     m = re.search(r"\bc\s?l\s?-?(\d{2})\b", _norm(testo))
     return int(m.group(1)) if m else None

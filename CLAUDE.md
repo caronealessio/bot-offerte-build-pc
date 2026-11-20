@@ -44,6 +44,8 @@ Il `--dry-run` modifica comunque `data/stato.json`: fai una copia prima e ripris
 - Nuovo: 📉 avviso se ≤90% della mediana a 30 giorni o se è il minimo storico (dopo 7 giorni di storico).
 - Senza offerte del nuovo (5700X3D, RX 7900 GRE): riferimento = mediana dell'usato (🟡 <85%, 🔴 <75%).
 - Segnali ⚠️: parole sospette nella descrizione (bonifico, whatsapp, telefono...), venditori eBay con <10 feedback o <97% di positivi, Subito "solo ritiro".
+- Annuncio già segnalato: nessun nuovo messaggio, salvo ribasso ≥5% ("📉 Ribassato"). Finché resta online non viene dimenticato.
+- RX 9060 XT e RTX 5060 Ti: "16GB" obbligatorio in titolo o descrizione (`richiede:` in config.yaml).
 - Primo giro: massimo 3 avvisi per prodotto; poi 8. Riepilogo il lunedì. Avviso se una fonte fallisce 3 esecuzioni di fila.
 - Questione aperta: per GPU fuori produzione (RTX 4070 Ti Super, RX 7900 XT) il nuovo su Trovaprezzi è gonfiato (Marketplace) e l'usato normale esce 🔴. Proposto di usare solo la mediana dell'usato: in attesa di decisione di Alessio.
 

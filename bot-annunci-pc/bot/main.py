@@ -8,7 +8,6 @@ Uso:
 from __future__ import annotations
 
 import argparse
-import re
 import sys
 import traceback
 from datetime import datetime
@@ -17,7 +16,7 @@ from pathlib import Path
 import yaml
 
 from .common import Annuncio, Http, fmt_euro
-from .matching import corrisponde, da_scartare, segnali_sospetti
+from .matching import corrisponde, da_scartare, richiesti_ok, segnali_sospetti
 from .prezzi import calcola_riferimenti, migliore_offerta, segnali_venditore, valuta_usato
 from .sources import ebay, idealo, subito, trovaprezzi, vinted
 from .storico import ROMA, Stato, oggi, ora_iso
@@ -78,11 +77,8 @@ class Esecuzione:
                 items = idealo.cerca(self.http, q_idealo)
                 self._esito("Idealo", True)
                 riuscite += 1
-                filtri = p.get("idealo_tutti", [])
-                offerte += [o for o in idealo.offerte(items)
-                            if all(re.search(rx, o.titolo.lower()) for rx in filtri)]
-                self.aliexpress[pid] = [a for a in idealo.aliexpress(items)
-                                        if all(re.search(rx, a.titolo.lower()) for rx in filtri)]
+                offerte += [o for o in idealo.offerte(items) if richiesti_ok(p, o.titolo)]
+                self.aliexpress[pid] = idealo.aliexpress(items)
             except Exception as e:  # noqa: BLE001
                 self._esito("Idealo", False, str(e))
                 print(f"[{pid}] Idealo errore: {e}")
@@ -188,6 +184,8 @@ class Esecuzione:
         for a in self._raccogli_usato(p):
             if not corrisponde(p, a.titolo):
                 continue
+            if not richiesti_ok(p, a.titolo + " " + a.descrizione):  # es. "16GB" non indicato
+                continue
             if da_scartare(a.titolo + " " + a.descrizione, self.cfg["scarta_se_contiene"]):
                 continue
             if a.prezzo < minimo:  # prezzi simbolici ("1 €", "trattabile") o accessori
@@ -205,7 +203,8 @@ class Esecuzione:
             prec = self.stato.prezzo_visto(a.chiave)
             ribasso = None
             if prec is not None:
-                if a.totale > prec * 0.95:
+                if a.totale > prec * 0.95:  # già visto e prezzo non sceso di almeno il 5%: niente messaggio
+                    self.stato.rivisto(a.chiave)
                     continue
                 ribasso = prec
             self.stato.segna_visto(a.chiave, a.totale)

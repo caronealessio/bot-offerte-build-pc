@@ -94,6 +94,13 @@ def test_matching():
     assert not corrisponde(PROD["rtx5060ti16"], "5060ti 8go quasi neuve")
     assert corrisponde(PROD["rtx5060ti16"], "RTX 5060 Ti 16 Go Gigabyte")
     assert corrisponde(PROD["rtx5070ti"], "MSI GeForce RTX 5070 Ti Gaming Trio OC 16GB con scatola")
+    # 9060 XT / 5060 Ti: "16GB" obbligatorio in titolo o descrizione
+    from bot.matching import richiesti_ok
+    g = PROD["rx9060xt16"]
+    assert not richiesti_ok(g, "RX 9060 XT")
+    assert richiesti_ok(g, "RX 9060 XT Sapphire Pulse — scheda da 16 GB GDDR6, perfetta")
+    assert richiesti_ok(g, "RX 9060 XT 16 Go")
+    assert richiesti_ok(PROD["rx9070xt"], "RX 9070 XT")              # nessun vincolo per gli altri
     assert da_scartare("RX 9060 XT guasta", CFG["scarta_se_contiene"])
     assert da_scartare("Cerco RX 9060 XT", CFG["scarta_se_contiene"])
 
@@ -242,6 +249,16 @@ def test_giro_completo(monkeypatch=None):
         run2 = M.Esecuzione(cfg, stato2, tg2)
         run2.usato(cfg["prodotti"][0])
         assert tg2.inviati == 0                             # già visti
+        # visto 80 giorni fa ma ancora online: la data si rinnova e non viene dimenticato
+        stato2.d["visti"]["Subito:10"][0] = "2000-01-01"
+        run3 = M.Esecuzione(cfg, stato2, Telegram(dry_run=True))
+        run3.usato(cfg["prodotti"][0])
+        assert run3.tg.inviati == 0 and stato2.d["visti"]["Subito:10"][0] != "2000-01-01"
+        # ribasso di almeno il 5%: nuovo avviso
+        stato2.d["visti"]["Subito:10"][1] = 420.0
+        run4 = M.Esecuzione(cfg, stato2, Telegram(dry_run=True))
+        run4.usato(cfg["prodotti"][0])
+        assert run4.tg.inviati == 1
 
     # budget: con tetto GPU a 300 € passa solo l'annuncio da 250 €
     cfg_b = dict(cfg, budget={"gpu": 300})
