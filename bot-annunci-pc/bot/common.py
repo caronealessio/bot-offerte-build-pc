@@ -77,41 +77,65 @@ def fmt_euro(v: float | None) -> str:
     return f"{s} €"
 
 
+class HttpErrore(Exception):
+    """Errore HTTP con codice di stato (status=None per errori di rete)."""
+
+    def __init__(self, msg: str, status: int | None = None):
+        super().__init__(msg)
+        self.status = status
+
+
+try:  # imita la connessione di Chrome: riduce i blocchi anti-bot
+    from curl_cffi import requests as _cffi
+except ImportError:  # pragma: no cover
+    _cffi = None
+
+
 class Http:
-    """Sessione HTTP con header da browser, pause e ritentativi."""
+    """Sessione HTTP con firma da browser, pause e ritentativi."""
 
     def __init__(self, pausa: float = 1.5):
-        self.s = requests.Session()
-        self.s.headers.update({
-            "User-Agent": USER_AGENT,
+        headers = {
             "Accept-Language": "it-IT,it;q=0.9,en;q=0.6",
             "Accept": "text/html,application/xhtml+xml,application/json;q=0.9,*/*;q=0.8",
-        })
+        }
+        if _cffi is not None:
+            self.s = _cffi.Session(impersonate="chrome")
+            self.motore = "curl_cffi"
+        else:
+            self.s = requests.Session()
+            headers["User-Agent"] = USER_AGENT
+            self.motore = "requests"
+        self.s.headers.update(headers)
         self.pausa = pausa
         self._ultima = 0.0
 
-    def get(self, url: str, **kw) -> requests.Response:
-        ultimo_err = None
+    def get(self, url: str, **kw):
+        ultimo_err: Exception | None = None
         for tentativo in range(3):
             attesa = self.pausa - (time.time() - self._ultima)
             if attesa > 0:
                 time.sleep(attesa)
             try:
                 r = self.s.get(url, timeout=25, **kw)
-                self._ultima = time.time()
-                if r.status_code in (429, 500, 502, 503, 504):
-                    raise requests.HTTPError(f"HTTP {r.status_code}")
-                r.raise_for_status()
-                return r
-            except requests.RequestException as e:  # noqa: PERF203
-                resp = getattr(e, "response", None)
-                if resp is not None and 400 <= resp.status_code < 500 and resp.status_code != 429:
-                    raise  # errori 4xx (es. 404, 403): inutile ritentare
-                ultimo_err = e
+            except Exception as e:  # errore di rete: si ritenta
+                ultimo_err = HttpErrore(f"errore di rete: {e}")
                 time.sleep(3 * (tentativo + 1))
+                continue
+            finally:
+                self._ultima = time.time()
+            if r.status_code < 400:
+                return r
+            err = HttpErrore(f"HTTP {r.status_code} per {url}", r.status_code)
+            if r.status_code in (429, 500, 502, 503, 504):
+                ultimo_err = err
+                time.sleep(3 * (tentativo + 1))
+                continue
+            raise err  # 4xx (403, 404...): inutile ritentare
         raise ultimo_err  # type: ignore[misc]
 
-    def post(self, url: str, **kw) -> requests.Response:
+    def post(self, url: str, **kw):
         r = self.s.post(url, timeout=25, **kw)
-        r.raise_for_status()
+        if r.status_code >= 400:
+            raise HttpErrore(f"HTTP {r.status_code} per {url}: {r.text[:200]}", r.status_code)
         return r

@@ -6,7 +6,7 @@ from urllib.parse import urljoin
 
 from bs4 import BeautifulSoup
 
-from ..common import Http, Offerta, euro
+from ..common import Http, HttpErrore, Offerta, euro
 
 BASE = "https://www.trovaprezzi.it"
 
@@ -59,12 +59,11 @@ def parse(html: str) -> list[Offerta]:
 
 
 def cerca(http: Http, url: str) -> list[Offerta]:
-    import requests
     try:
         r = http.get(url)
-    except requests.HTTPError as e:
+    except HttpErrore as e:
         # 404 = nessuna offerta per quel prodotto (es. fuori produzione): non è un errore
-        if e.response is not None and e.response.status_code == 404:
+        if e.status == 404:
             return []
         raise
     return parse(r.text)
