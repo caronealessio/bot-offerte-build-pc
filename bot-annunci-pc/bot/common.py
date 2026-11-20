@@ -68,13 +68,19 @@ class Offerta:
 
 
 def euro(testo: str) -> float | None:
-    """'1.234,56 €' -> 1234.56"""
+    """'1.234,56 €' -> 1234.56 · '1000' -> 1000 · '12.50' -> 12.5"""
     if testo is None:
         return None
-    m = re.search(r"(\d{1,3}(?:\.\d{3})*(?:,\d{1,2})?|\d+(?:,\d{1,2})?)", testo.replace("\xa0", " "))
+    t = testo.replace("\xa0", " ")
+    # 1) con punto delle migliaia: 1.234 / 1.234,56
+    m = re.search(r"\d{1,3}(?:\.\d{3})+(?:,\d{1,2})?(?!\d)", t)
+    if m:
+        return float(m.group(0).replace(".", "").replace(",", "."))
+    # 2) cifre semplici, con decimali a virgola o punto: 1000 / 1000,50 / 12.50
+    m = re.search(r"\d+(?:[.,]\d{1,2}(?!\d))?", t)
     if not m:
         return None
-    return float(m.group(1).replace(".", "").replace(",", "."))
+    return float(m.group(0).replace(",", "."))
 
 
 def fmt_euro(v: float | None) -> str:

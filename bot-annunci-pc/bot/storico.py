@@ -8,6 +8,7 @@ from pathlib import Path
 from zoneinfo import ZoneInfo
 
 ROMA = ZoneInfo("Europe/Rome")
+VERSIONE_DATI = 2
 
 
 def oggi() -> str:
@@ -27,6 +28,16 @@ class Stato:
             self.d = {}
         for k in ("visti", "nuovo", "usato", "avvisi_nuovo", "errori", "negozi_visti", "meta"):
             self.d.setdefault(k, {})
+        self._migra()
+
+    def _migra(self):
+        """v2: i prezzi Subito >= 1000 € erano letti troncati (1000 -> 100).
+        Si azzerano storico usato e annunci visti; il primo giro torna a max 3 avvisi."""
+        if self.d["meta"].get("versione_dati", 1) < VERSIONE_DATI:
+            self.d["usato"] = {}
+            self.d["visti"] = {}
+            self.d["meta"] = {k: v for k, v in self.d["meta"].items() if not k.startswith("init_")}
+            self.d["meta"]["versione_dati"] = VERSIONE_DATI
 
     # ---------- annunci già visti ----------
     def visto(self, chiave: str) -> bool:

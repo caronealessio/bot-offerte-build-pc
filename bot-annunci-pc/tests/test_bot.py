@@ -51,6 +51,12 @@ def test_euro():
     assert euro("1.234,56 €") == 1234.56
     assert euro("Tot. 700,88 €") == 700.88
     assert euro("750") == 750
+    assert euro("1000") == 1000          # Subito: niente punto delle migliaia
+    assert euro("1999 €") == 1999
+    assert euro("1.008,99 €") == 1008.99
+    assert euro("12.50") == 12.5
+    assert euro("0,99") == 0.99
+    assert euro("1.000") == 1000
 
 
 def test_matching():
